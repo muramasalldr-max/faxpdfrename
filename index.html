@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDFリネームMVP</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Browser-only PDF Rename MVP</p>
+          <h1>PDFリネームツール</h1>
+          <p class="lead">
+            ローカルPDFをブラウザ内だけで解析し、ルールに従って新しいファイル名を作成してZIPでまとめてダウンロードします。
+          </p>
+        </div>
+        <div class="privacy-note">
+          <strong>ローカル処理のみ</strong>
+          <span>PDFは外部サーバーへ送信されません。</span>
+        </div>
+      </header>
+
+      <section class="panel uploader-panel">
+        <div
+          id="dropZone"
+          class="drop-zone"
+          role="button"
+          tabindex="0"
+          aria-label="PDFファイルを追加"
+        >
+          <input id="fileInput" type="file" accept="application/pdf" multiple hidden />
+          <div class="drop-zone-content">
+            <h2>PDFを追加</h2>
+            <p>クリックして選択、またはここへドラッグ＆ドロップ</p>
+            <button id="selectButton" class="primary-button" type="button">PDFを選択</button>
+          </div>
+        </div>
+        <div class="uploader-actions">
+          <div id="statusMessage" class="status-message">PDFを追加すると解析結果を一覧表示します。</div>
+          <button id="downloadZipButton" class="secondary-button" type="button" disabled>
+            リネーム後PDFをZIPでダウンロード
+          </button>
+        </div>
+      </section>
+
+      <section class="panel summary-panel">
+        <div class="summary-grid">
+          <article>
+            <span class="summary-label">読込ファイル数</span>
+            <strong id="fileCount">0</strong>
+          </article>
+          <article>
+            <span class="summary-label">判定成功</span>
+            <strong id="matchedCount">0</strong>
+          </article>
+          <article>
+            <span class="summary-label">要確認</span>
+            <strong id="warningCount">0</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="section-header">
+          <div>
+            <h2>ルール適用結果</h2>
+            <p>元ファイル名と新ファイル名、抽出結果、判定状況を確認できます。</p>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>状態</th>
+                <th>元ファイル名</th>
+                <th>新ファイル名</th>
+                <th>顧客名</th>
+                <th>書類種別</th>
+                <th>日付</th>
+                <th>メッセージ</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr class="empty-row">
+                <td colspan="7">まだPDFが追加されていません。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+    <script src="rules.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
