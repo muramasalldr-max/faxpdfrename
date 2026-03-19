@@ -1,0 +1,177 @@
+# PDFリネームツール MVP
+
+ブラウザだけで完結する、複数PDF向けのリネーム支援ツールです。ユーザーがローカルで選択したPDFをブラウザ内JavaScriptで読み取り、ファイル名・PDFメタデータ・PDF内テキスト層をもとにルール判定し、新しいファイル名を生成したうえでZIPにまとめてダウンロードできます。
+
+## 特徴
+
+- **ブラウザ完結**: Node.jsサーバーやバックエンドAPIは不要
+- **ローカル処理のみ**: PDFは外部サーバーへ送信しない
+- **複数PDF対応**: ファイル選択とドラッグ＆ドロップの両方に対応
+- **ルール分離**: 判定ルールと命名テンプレートを `rules.js` に切り出し
+- **MVP向けUI**: 元ファイル名、新ファイル名、顧客名、書類種別、日付、判定状態を一覧表示
+- **ZIP出力**: リネーム後のファイル名でZIPダウンロード
+
+## ファイル構成
+
+```text
+.
+├── index.html   # 画面UIとライブラリ読み込み
+├── style.css    # UIスタイル
+├── script.js    # ファイル受付、PDF解析、ルール適用、ZIP生成
+├── rules.js     # 判定ルールと命名テンプレート
+└── README.md    # 説明書
+```
+
+## 使い方
+
+1. `index.html` をブラウザで開きます。
+2. PDFを複数選択するか、ドラッグ＆ドロップで追加します。
+3. ブラウザ内で以下を処理します。
+   - 元ファイル名の解析
+   - PDFメタデータの取得
+   - PDF内テキスト層の抽出（OCRなし）
+4. `rules.js` のルールを適用し、新しいファイル名を生成します。
+5. 一覧で判定結果を確認します。
+6. 「リネーム後PDFをZIPでダウンロード」を押すと、変更後ファイル名でZIPを保存できます。
+
+## ルール追加方法
+
+ルールは `rules.js` の `window.PDF_RENAME_RULES` 配列に追加します。1ルールは次のような構成です。
+
+```js
+{
+  id: 'invoice-acme',
+  label: 'Acme請求書',
+  match: {
+    filenameIncludes: ['invoice', '請求'],
+    textIncludes: ['acme corporation', '請求書'],
+    metadataIncludes: ['invoice']
+  },
+  extract: {
+    customer: {
+      fromText: /(?:Acme Corporation|株式会社アクメ)/i,
+      value: 'Acme'
+    },
+    docType: {
+      fromText: /請求書|invoice/i,
+      value: '請求書'
+    },
+    date: {
+      patterns: [
+        /(?:発行日|請求日|Invoice Date)[:：\s]*([12]\d{3}[\/-]\d{1,2}[\/-]\d{1,2})/i
+      ]
+    },
+    invoiceNo: {
+      patterns: [
+        /(?:請求書番号|Invoice No\.?|Invoice #)[:：\s]*([A-Z0-9\-]+)/i
+      ]
+    }
+  },
+  template: '{date}_{customer}_{docType}_{invoiceNo}.pdf'
+}
+```
+
+### ルール設計の考え方
+
+- `match`: そのルールを適用するかの判定条件
+  - `filenameIncludes`
+  - `textIncludes`
+  - `metadataIncludes`
+- `extract`: 顧客名、書類種別、日付、請求番号などの抽出方法
+- `template`: ファイル名生成テンプレート
+
+### ルール追加のコツ
+
+- まずは `textIncludes` を中心に判定すると安定しやすいです
+- 同じ書類種別でも顧客ごとにルールを分けると保守しやすいです
+- 日付や番号は `patterns` に正規表現を複数並べると吸収しやすいです
+
+## MVPでできること
+
+- 複数PDFの追加
+- ドラッグ＆ドロップ追加
+- PDFメタデータ取得
+- PDFテキスト層の抽出（先頭数ページ）
+- 判定ルールにもとづく顧客名・書類種別・日付・番号の抽出
+- 新ファイル名生成
+- 禁止文字除去
+- 長すぎるファイル名の自動調整
+- 同名ファイルの重複回避
+- リネーム後PDFのZIPダウンロード
+- 未判定 / 一部抽出失敗 / 解析エラーの表示
+
+## MVPでできないこと
+
+- OCR
+- スキャン画像PDFからの文字認識
+- バックエンド保存
+- ユーザー認証
+- データベース連携
+- AIによる高度判定
+- 外部API連携
+
+## 技術メモ
+
+- PDF解析: classic script 互換性を優先し、`pdf.js 3.11.174` の classic build (`pdf.min.js`) をCDNから読み込み
+- PDF worker: `pdf.worker.min.js` を別ファイルとして使い、`script.js` 内で `pdfjsLib.GlobalWorkerOptions.workerSrc` に明示設定
+- ZIP生成: `JSZip 3.10.1` を classic script としてCDNから読み込み
+- 静的ファイルだけで動作するため、社内Webサイトへ埋め込みやすい構成です
+- 将来はCDN依存を避けたい場合、ライブラリを社内配布パスへ置き換えるだけでも対応しやすい構成です
+
+### 現在のライブラリ読み込み
+
+GitHub Pages で classic script として動かすため、`index.html` では次のように読み込んでいます。
+
+```html
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+```
+
+また、worker は `script.js` で次のように設定しています。
+
+```js
+const PDF_JS_VERSION = '3.11.174';
+const PDF_JS_CDN_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}`;
+const pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
+
+if (pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDF_JS_CDN_BASE}/pdf.worker.min.js`;
+}
+```
+
+これにより、`type="module"` を使わない classic script 前提でも GitHub Pages 上で動かしやすい構成になります。
+
+### vendor フォルダへ同梱する案
+
+外部CDN依存をさらに減らしたい場合は、将来的に以下のような構成へ切り替えられます。
+
+```text
+vendor/
+├── pdf.min.js
+├── pdf.worker.min.js
+└── jszip.min.js
+```
+
+その場合は `index.html` の読み込み先を `./vendor/...` に変更し、`workerSrc` も `./vendor/pdf.worker.min.js` に切り替えるだけで対応できます。GitHub Pages でも同じ静的配信として扱えるため、社内向けに安定運用しやすくなります。
+
+## 将来の拡張案
+
+- ルール定義を `rules.json` に寄せて非エンジニアでも編集しやすくする
+- ルールごとの優先度や複数候補提示
+- UIからルールテストやプレビューを行えるようにする
+- 抽出対象フィールドを増やす（部署名、案件番号、支払期限など）
+- 埋め込み用に1つの初期化関数へまとめ、任意DOMへマウント可能にする
+- Web Components化して社内ポータルへ組み込みやすくする
+- オフライン配布用にライブラリ同梱版を用意する
+
+## 補足
+
+このMVPは**まず動くこと**と**ルール追加のしやすさ**を重視した構成です。高精度化が必要になったら、ルール追加や抽出正規表現の調整から段階的に拡張するのがおすすめです。
