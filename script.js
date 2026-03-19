@@ -1,4 +1,6 @@
 (() => {
+  const PDF_JS_VERSION = '3.11.174';
+  const PDF_JS_CDN_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}`;
   const fileInput = document.getElementById('fileInput');
   const selectButton = document.getElementById('selectButton');
   const dropZone = document.getElementById('dropZone');
@@ -16,8 +18,7 @@
 
   const pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
   if (pdfjsLib) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDF_JS_CDN_BASE}/pdf.worker.min.js`;
   }
 
   selectButton.addEventListener('click', () => fileInput.click());
@@ -65,7 +66,10 @@
     }
 
     if (!pdfjsLib || typeof JSZip === 'undefined') {
-      setStatus('必要なライブラリの読込に失敗しました。通信環境またはCDN設定を確認してください。', 'error');
+      setStatus(
+        '必要なライブラリの読込に失敗しました。GitHub Pages の配信内容と CDN パスを確認してください。',
+        'error'
+      );
       return;
     }
 

@@ -112,10 +112,55 @@
 
 ## 技術メモ
 
-- PDF解析: `pdf.js` をCDNから読み込み
-- ZIP生成: `JSZip` をCDNから読み込み
+- PDF解析: classic script 互換性を優先し、`pdf.js 3.11.174` の classic build (`pdf.min.js`) をCDNから読み込み
+- PDF worker: `pdf.worker.min.js` を別ファイルとして使い、`script.js` 内で `pdfjsLib.GlobalWorkerOptions.workerSrc` に明示設定
+- ZIP生成: `JSZip 3.10.1` を classic script としてCDNから読み込み
 - 静的ファイルだけで動作するため、社内Webサイトへ埋め込みやすい構成です
 - 将来はCDN依存を避けたい場合、ライブラリを社内配布パスへ置き換えるだけでも対応しやすい構成です
+
+### 現在のライブラリ読み込み
+
+GitHub Pages で classic script として動かすため、`index.html` では次のように読み込んでいます。
+
+```html
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+```
+
+また、worker は `script.js` で次のように設定しています。
+
+```js
+const PDF_JS_VERSION = '3.11.174';
+const PDF_JS_CDN_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}`;
+const pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
+
+if (pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDF_JS_CDN_BASE}/pdf.worker.min.js`;
+}
+```
+
+これにより、`type="module"` を使わない classic script 前提でも GitHub Pages 上で動かしやすい構成になります。
+
+### vendor フォルダへ同梱する案
+
+外部CDN依存をさらに減らしたい場合は、将来的に以下のような構成へ切り替えられます。
+
+```text
+vendor/
+├── pdf.min.js
+├── pdf.worker.min.js
+└── jszip.min.js
+```
+
+その場合は `index.html` の読み込み先を `./vendor/...` に変更し、`workerSrc` も `./vendor/pdf.worker.min.js` に切り替えるだけで対応できます。GitHub Pages でも同じ静的配信として扱えるため、社内向けに安定運用しやすくなります。
 
 ## 将来の拡張案
 
